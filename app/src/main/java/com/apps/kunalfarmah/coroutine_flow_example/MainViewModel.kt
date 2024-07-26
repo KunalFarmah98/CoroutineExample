@@ -4,18 +4,27 @@ import android.util.Log
 import androidx.compose.runtime.mutableStateOf
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import androidx.lifecycle.viewmodel.viewModelFactory
+import kotlinx.coroutines.CoroutineExceptionHandler
 import kotlinx.coroutines.Deferred
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapConcat
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.merge
 import kotlinx.coroutines.flow.zip
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
+import java.util.concurrent.CancellationException
 
 class MainViewModel: ViewModel() {
 
@@ -31,9 +40,10 @@ class MainViewModel: ViewModel() {
         }
     }
 
+
     var flow2 = flow {
         for (i in 10..15) {
-            delay(800)
+            delay(500)
             Log.e(TAG, "inside flow2 emitted: $i")
             emit(i)
         }
@@ -58,6 +68,16 @@ class MainViewModel: ViewModel() {
             }
 
         }
+
+    fun collectLatest(){
+        viewModelScope.launch {
+            flow1.collectLatest{
+                delay(1500)
+                Log.e(TAG, "flow1 emitted: $it")
+            }
+        }
+
+    }
 
         fun combine(){
             viewModelScope.launch {
@@ -255,6 +275,147 @@ class MainViewModel: ViewModel() {
         viewModelScope.launch {
             toastFlow.value = true
             toastSharedFlow.value = true
+        }
+    }
+
+    fun testTryCatchIncorrect(){
+        viewModelScope.launch {
+            try{
+                launch{
+                    throw (Exception("error"))
+                }
+            }
+            catch (e: Exception){
+                Log.e(TAG, "caught exception: $e")
+            }
+        }
+    }
+
+    fun testTryCatchCorrect() {
+        viewModelScope.launch {
+            launch {
+                try {
+                    throw (Exception("error"))
+                } catch (e: Exception) {
+                    Log.e(TAG, "caught exception: $e")
+                }
+            }
+        }
+
+    }
+
+    val handler =  CoroutineExceptionHandler { _, throwable ->
+        Log.e(TAG, "caught exception: $throwable")
+    }
+
+    fun exceptionHandler() {
+        viewModelScope.launch(handler) {
+            Log.e(TAG, "inside first launch")
+            launch(Dispatchers.IO) {
+                Log.e(TAG, "inside second launch")
+                launch {
+                    Log.e(TAG, "inside third launch")
+                    throw (Exception("error"))
+                    Log.e(TAG, "finished third launch")
+                }
+                delay(1000)
+                Log.e(TAG, "finished second launch")
+            }
+            delay(2000)
+            Log.e(TAG, "finished first launch")
+        }
+
+    }
+
+    fun cancellationParent(){
+        val job1 = viewModelScope.launch(handler) {
+            Log.e(TAG, "inside job1")
+            val job2 = launch{
+                Log.e(TAG, "inside job2")
+                val job3 = launch {
+                    Log.e(TAG, "inside job3")
+                    delay(5000)
+                    Log.e(TAG, "finished job3")
+                }
+                delay(4000)
+                Log.e(TAG, "finished job2")
+            }
+            delay(1000)
+            Log.e(TAG, "finshed job1")
+        }
+        viewModelScope.launch {
+            delay(2000)
+            Log.e(TAG, "cancelling job1")
+            job1.cancelAndJoin()
+        }
+    }
+
+    fun cancellationChild(){
+
+        var job1: Job? = null
+        var job2: Job? = null
+        var job3: Job? = null
+
+        job1 = viewModelScope.launch(handler) {
+            Log.e(TAG, "inside job1")
+            job2 = launch{
+                Log.e(TAG, "inside job2")
+                job3 = launch {
+                    Log.e(TAG, "inside job3")
+                    delay(4000)
+                    Log.e(TAG, "finished job3")
+                }
+                delay(5000)
+                Log.e(TAG, "finished job2")
+            }
+            delay(1000)
+            Log.e(TAG, "finshed job1")
+        }
+
+        viewModelScope.launch {
+            delay(4000)
+            Log.e(TAG, "cancelling job2")
+            job2?.cancel()
+        }
+    }
+
+    fun cancellationWithoutChecking() {
+        val startTime = System.currentTimeMillis()
+
+            val job = viewModelScope.launch(handler) {
+                var nextPrintTime = startTime
+                var i = 0
+                while (i < 10) {
+                    // print a message twice a second
+                    if (System.currentTimeMillis() >= nextPrintTime) {
+                        Log.e(TAG, "Hello ${i++}")
+                        nextPrintTime += 500L
+                    }
+                }
+
+            delay(1000)
+            Log.e(TAG, "cancelling job")
+            throw CancellationException("job cancelled")
+        }
+    }
+
+    fun cancellationWithChecking() {
+        val startTime = System.currentTimeMillis()
+        viewModelScope.launch(handler) {
+            var nextPrintTime = startTime
+            var i = 0
+            while (i < 10) {
+                ensureActive()
+                // print a message twice a second
+                if (System.currentTimeMillis() >= nextPrintTime) {
+                    Log.e(TAG, "Hello ${i++}")
+                    nextPrintTime += 500L
+                }
+            }
+
+            delay(1000)
+            Log.e(TAG, "cancelling job")
+            throw CancellationException("job1 Cancelled")
         }
     }
 

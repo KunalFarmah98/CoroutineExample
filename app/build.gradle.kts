@@ -69,4 +69,5 @@ dependencies {
 
     implementation(libs.viewmodel)
     implementation(libs.coroutines)
+    implementation(libs.compose.lifecycle)
 }

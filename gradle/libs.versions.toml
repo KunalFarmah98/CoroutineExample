@@ -29,7 +29,7 @@ androidx-ui-test-junit4 = { group = "androidx.compose.ui", name = "ui-test-junit
 androidx-material3 = { group = "androidx.compose.material3", name = "material3" }
 viewmodel = {group ="androidx.lifecycle", name=  "lifecycle-viewmodel-ktx", version.ref = "viewmodel"}
 coroutines = {group ="org.jetbrains.kotlinx", name=  "kotlinx-coroutines-android", version.ref = "coroutines"}
-compose-lifecycle = {group ="androidx.lifecycl", name=  "lifecycle-runtime-compose", version.ref = "composeLifecycle"}
+compose-lifecycle = {group ="androidx.lifecycle", name=  "lifecycle-runtime-compose", version.ref = "composeLifecycle"}
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }

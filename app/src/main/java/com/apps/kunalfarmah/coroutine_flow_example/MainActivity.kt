@@ -9,6 +9,8 @@ import androidx.activity.viewModels
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -27,11 +29,15 @@ class MainActivity : ComponentActivity() {
                 val showToast = vm.toastFlow.collectAsState()
                 val showSharedToast = vm.toastSharedFlow.collectAsState()
 
-                
-                Column {
+
+                Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                     Spacer(modifier = Modifier.height(30.dp))
                     Button(onClick = { vm.collect() }) {
                         Text(text = "Collect")
+                    }
+
+                    Button(onClick = { vm.collectLatest() }) {
+                        Text(text = "CollectLatest")
                     }
 
                     Button(onClick = { vm.combine() }) {
@@ -84,6 +90,34 @@ class MainActivity : ComponentActivity() {
                     
                     Button(onClick = { vm.showToast()}) {
                         Text(text = "Show Toast")
+                    }
+
+                    Button(onClick = { vm.testTryCatchIncorrect()}) {
+                        Text(text = "Try catch incorrect")
+                    }
+
+                    Button(onClick = { vm.testTryCatchCorrect()}) {
+                        Text(text = "Try catch correct")
+                    }
+
+                    Button(onClick = { vm.exceptionHandler()}) {
+                        Text(text = "Exception handler")
+                    }
+
+                    Button(onClick = { vm.cancellationParent()}) {
+                        Text(text = "Cancel parent")
+                    }
+
+                    Button(onClick = { vm.cancellationChild()}) {
+                        Text(text = "Cancel child")
+                    }
+
+                    Button(onClick = { vm.cancellationWithoutChecking()}) {
+                        Text(text = "Cancel without checks")
+                    }
+
+                    Button(onClick = { vm.cancellationWithChecking()}) {
+                        Text(text = "Cancel with checks")
                     }
 
                     showToast.let {
